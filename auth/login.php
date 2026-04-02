@@ -2,70 +2,84 @@
 session_start();
 include("../config/db.php");
 
-if (isset($_POST['login'])) {
+$error = "";
 
-    $email = trim($_POST['email']);
+if (isset($_POST['login'])) {
+    $email    = trim($_POST['email']);
     $password = trim($_POST['password']);
 
-    $sql = "SELECT * FROM users WHERE email='$email'";
-    $result = $conn->query($sql);
+    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-
         $user = $result->fetch_assoc();
-
-        // DEBUG (temporary)
-        echo "Entered Password: " . $password . "<br>";
-        echo "Stored Password: " . $user['password'] . "<br><br>";
-
-        // Try BOTH methods
-        if ($password == $user['password'] || password_verify($password, $user['password'])) {
-
+        if (password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['role'] = $user['role'];
+            $_SESSION['role']    = $user['role'];
+            $_SESSION['name']    = $user['name'];
 
-            if ($user['role'] == "admin") {
-                header("Location: ../admin/view_requests.php");
-                exit();
-            } elseif ($user['role'] == "donor") {
-                header("Location: ../donor/add_food.php");
-                exit();
-            } else {
-                header("Location: ../receiver/view_food.php");
-                exit();
-            }
+            if ($user['role'] == "admin")         header("Location: /food_waste_project/admin/dashboard.php");
+            elseif ($user['role'] == "donor")     header("Location: /food_waste_project/donor/donate_food.php");
+            else                                  header("Location: /food_waste_project/receiver/view_food.php");
+            exit();
         } else {
-            echo "Invalid password";
+            $error = "Invalid email or password.";
         }
     } else {
-        echo "User not found";
+        $error = "Invalid email or password.";
     }
 }
 ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — FoodShare</title>
     <link rel="stylesheet" href="/food_waste_project/css/style.css">
 </head>
 
 <body>
 
-    <h2>Login</h2>
+    <nav>
+        <a href="/food_waste_project/index.php" class="nav-brand">FoodShare</a>
+        <div class="nav-links">
+            <a href="/food_waste_project/auth/register.php">Register</a>
+        </div>
+    </nav>
 
-    <form method="POST">
+    <div class="page-wrapper" style="display:flex;align-items:center;min-height:calc(100vh - 60px);">
+        <div class="form-card" style="width:100%;">
+            <h2>Welcome back</h2>
+            <p class="subtitle">Sign in to your FoodShare account</p>
 
-        Email:<br>
-        <input type="email" name="email" required><br><br>
+            <?php if ($error): ?>
+                <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
 
-        Password:<br>
-        <input type="password" name="password" required><br><br>
+            <form method="POST">
+                <div class="form-group">
+                    <label>Email address</label>
+                    <input type="email" name="email" placeholder="you@example.com" required
+                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" name="login" class="btn btn-primary btn-full" style="margin-top:0.5rem;">
+                    Sign In
+                </button>
+            </form>
 
-        <input type="submit" name="login" value="Login">
-
-    </form>
+            <div class="form-footer">
+                Don't have an account? <a href="/food_waste_project/auth/register.php">Register here</a>
+            </div>
+        </div>
+    </div>
 
 </body>
 
