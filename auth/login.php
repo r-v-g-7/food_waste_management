@@ -3,41 +3,70 @@ session_start();
 include("../config/db.php");
 
 if (isset($_POST['login'])) {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
 
-    $sql = "SELECT * FROM users WHERE email='$email' AND password='$password'";
+    $email = trim($_POST['email']);
+    $password = trim($_POST['password']);
+
+    $sql = "SELECT * FROM users WHERE email='$email'";
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
+
         $user = $result->fetch_assoc();
 
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['role'] = $user['role'];
+        // DEBUG (temporary)
+        echo "Entered Password: " . $password . "<br>";
+        echo "Stored Password: " . $user['password'] . "<br><br>";
 
-        if ($user['role'] == "admin") {
-            header("Location: ../admin/view_requests.php");
-        } elseif ($user['role'] == "donor") {
-            header("Location: ../donor/add_food.php");
+        // Try BOTH methods
+        if ($password == $user['password'] || password_verify($password, $user['password'])) {
+
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['role'] = $user['role'];
+
+            if ($user['role'] == "admin") {
+                header("Location: ../admin/view_requests.php");
+                exit();
+            } elseif ($user['role'] == "donor") {
+                header("Location: ../donor/add_food.php");
+                exit();
+            } else {
+                header("Location: ../receiver/view_food.php");
+                exit();
+            }
         } else {
-            header("Location: ../receiver/view_food.php");
+            echo "Invalid password";
         }
     } else {
-        echo "Invalid login";
+        echo "User not found";
     }
 }
 ?>
 
-<h2>Login</h2>
+<!DOCTYPE html>
+<html>
 
-<form method="POST">
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="/food_waste_project/css/style.css">
+</head>
 
-    Email:<br>
-    <input type="email" name="email"><br><br>
+<body>
 
-    Password:<br>
-    <input type="password" name="password"><br><br>
+    <h2>Login</h2>
 
-    <input type="submit" name="login" value="Login">
+    <form method="POST">
 
-</form>
+        Email:<br>
+        <input type="email" name="email" required><br><br>
+
+        Password:<br>
+        <input type="password" name="password" required><br><br>
+
+        <input type="submit" name="login" value="Login">
+
+    </form>
+
+</body>
+
+</html>
