@@ -3,42 +3,64 @@ session_start();
 require_once("../config/db.php");
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'receiver') {
-    header("Location: ../auth/login.php");
+    header("Location: /food_waste_project/auth/login.php");
     exit();
 }
 
-$sql = "SELECT * FROM food_donations WHERE status = 'available'";
+$sql    = "SELECT * FROM food_donations WHERE status = 'available' ORDER BY id DESC";
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Available Food</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Food — FoodShare</title>
     <link rel="stylesheet" href="/food_waste_project/css/style.css">
 </head>
 
 <body>
 
-    <h2>Available Food</h2>
+    <nav>
+        <a href="/food_waste_project/index.php" class="nav-brand">FoodShare</a>
+        <div class="nav-links">
+            <a href="/food_waste_project/receiver/view_food.php" class="active">Browse Food</a>
+            <a href="/food_waste_project/auth/logout.php" class="btn-logout">Logout</a>
+        </div>
+    </nav>
 
-    <?php if ($result->num_rows > 0): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
-            <div style="border:1px solid black; padding:10px; margin:10px;">
-                <!-- ✅ htmlspecialchars prevents XSS -->
-                Food: <?php echo htmlspecialchars($row['food_name']); ?><br>
-                Quantity: <?php echo htmlspecialchars($row['quantity']); ?><br>
-                Location: <?php echo htmlspecialchars($row['location']); ?><br>
-                Expiry: <?php echo htmlspecialchars($row['expiry_time']); ?><br><br>
-                <!-- ✅ intval() ensures only a clean integer in the URL -->
-                <a href="request_food.php?food_id=<?php echo intval($row['id']); ?>">Request Food</a>
+    <div class="page-wrapper">
+        <div class="page-header">
+            <h1>Available Food</h1>
+            <p>Hello, <?php echo htmlspecialchars($_SESSION['name'] ?? 'there'); ?>! Browse and request food donations below.</p>
+        </div>
+
+        <?php if ($result->num_rows > 0): ?>
+            <div class="card-grid">
+                <?php while ($row = $result->fetch_assoc()): ?>
+                    <div class="food-card">
+                        <h3><?php echo htmlspecialchars($row['food_name']); ?></h3>
+                        <div class="meta">
+                            <span>🍽️ Qty: <?php echo htmlspecialchars($row['quantity']); ?></span>
+                            <span>📍 <?php echo htmlspecialchars($row['location']); ?></span>
+                            <span>⏰ Expires: <?php echo htmlspecialchars($row['expiry_time']); ?></span>
+                        </div>
+                        <a href="/food_waste_project/receiver/request_food.php?food_id=<?php echo intval($row['id']); ?>"
+                            class="btn btn-primary btn-sm btn-full"
+                            onclick="return confirm('Request this food donation?')">
+                            Request Food
+                        </a>
+                    </div>
+                <?php endwhile; ?>
             </div>
-        <?php endwhile; ?>
-    <?php else: ?>
-        <p>No food available at the moment.</p>
-    <?php endif; ?>
-
-    <br><a href="../index.php">Back to Home</a>
+        <?php else: ?>
+            <div class="empty-state">
+                <div class="empty-icon">🍽️</div>
+                <p>No food available right now. Check back soon!</p>
+            </div>
+        <?php endif; ?>
+    </div>
 
 </body>
 
